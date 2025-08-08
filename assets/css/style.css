@@ -1,0 +1,221 @@
+/* ===== Global ===== */
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f5f6fa;
+}
+
+/* ===== Login Page Styling ===== */
+.login-body {
+    background: linear-gradient(135deg, #e9f2ff, #ffffff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 420px;
+    padding: 15px;
+}
+
+.login-card {
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.login-title {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #155ba3;
+    font-weight: 600;
+}
+
+.login-title i {
+    color: #155ba3;
+    margin-right: 8px;
+}
+
+.btn-login {
+    background-color: #155ba3;
+    color: white;
+    font-weight: 500;
+}
+
+.btn-login:hover {
+    background-color: #0e4b89;
+}
+
+.login-footer {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #888;
+}
+
+/* Optional animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ===== Sidebar ===== */
+.sidebar {
+    width: 250px;
+    position: fixed;
+    height: 100%;
+    background: #155ba3;
+    color: #fff;
+}
+
+.sidebar a {
+    color: #fff;
+    display: block;
+    padding: 12px 20px;
+    text-decoration: none;
+    transition: background 0.3s;
+}
+
+.sidebar a:hover {
+    background: #0d4177;
+}
+
+/* ===== Dropdown Sidebar ===== */
+.sidebar-dropdown {
+    position: relative;
+}
+
+.sidebar-dropdown > a {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.sidebar-dropdown .dropdown-icon {
+    transition: transform 0.3s ease;
+}
+
+.sidebar-dropdown.active .dropdown-icon {
+    transform: rotate(180deg);
+}
+
+.sidebar-submenu {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-dropdown.active .sidebar-submenu {
+    max-height: 200px;
+}
+
+.sidebar-submenu a {
+    padding: 10px 20px 10px 45px;
+    font-size: 0.9rem;
+    border-left: 3px solid transparent;
+}
+
+.sidebar-submenu a:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-left-color: #ffc107;
+}
+
+
+/* ===== Topbar ===== */
+.topbar {
+    background: #fff;
+    padding: 10px 20px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* ===== Main Area ===== */
+.main {
+    margin-left: 250px;
+    padding: 20px;
+}
+
+/* ===== Dashboard Cards ===== */
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.card h5 {
+    font-weight: 500;
+}
+
+.card h3 {
+    font-weight: 600;
+}
+
+ 
+       .login-box {
+    max-width: 400px;
+    margin: 60px auto;
+    padding: 30px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0px 4px 20px rgba(0,0,0,0.1);
+}
+
+/* form css*/
+
+.form-control:focus {
+    box-shadow: none;
+}
+        
+.form-section {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.form-title {
+    font-size: 1.5rem;
+    color: #155ba3;
+    font-weight: 600;
+}
+
+.section-subtitle {
+    font-size: 1.2rem;
+    color: #444;
+    margin-top: 30px;
+    margin-bottom: 15px;
+}
+
+.product-row {
+    border: 1px dashed #ccc;
+    background: #f9f9f9;
+}
+
+.btn-outline-primary {
+    color: #155ba3;
+    border-color: #155ba3;
+}
+
+.btn-outline-primary:hover {
+    background-color: #155ba3;
+    color: white;
+}
+
+/* table css*/
+
+.table thead {
+    background-color: #155ba3;
+    color: #fff;
+}
+
+.table td, .table th {
+    vertical-align: middle;
+}
