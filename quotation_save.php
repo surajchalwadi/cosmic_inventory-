@@ -27,6 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $follow_up_notes = mysqli_real_escape_string($conn, $_POST['follow_up_notes']);
         $created_by = $_SESSION['user']['id'];
         
+        // Determine status based on action type
+        $action_type = isset($_POST['action_type']) ? $_POST['action_type'] : 'send';
+        $status = ($action_type === 'draft') ? 'Draft' : 'Sent';
+        
         // Calculate grand total
         $grand_total = 0;
         if (isset($_POST['price']) && isset($_POST['quantity']) && is_array($_POST['price']) && is_array($_POST['quantity'])) {
@@ -46,14 +50,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $quotation_query = "INSERT INTO quotations (
             reference, customer_name, phone, company, contact_person, address, 
             additional_info, margin_percent, discount_percent, follow_up_date, 
-            follow_up_method, follow_up_notes, grand_total, created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            follow_up_method, follow_up_notes, grand_total, status, created_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         $stmt = mysqli_prepare($conn, $quotation_query);
-        mysqli_stmt_bind_param($stmt, "sssssssddsssdi", 
+        mysqli_stmt_bind_param($stmt, "sssssssddsssdsi", 
             $reference, $customer_name, $phone, $company, $contact_person, 
             $address, $additional_info, $margin_percent, $discount_percent, 
-            $follow_up_date, $follow_up_method, $follow_up_notes, $grand_total, $created_by
+            $follow_up_date, $follow_up_method, $follow_up_notes, $grand_total, $status, $created_by
         );
         
         if (!mysqli_stmt_execute($stmt)) {
@@ -89,7 +93,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Commit transaction
         mysqli_commit($conn);
         
-        $_SESSION['success'] = "Quotation created successfully! Reference: " . $reference;
+        if ($status === 'Draft') {
+            $_SESSION['success'] = "Quotation saved as draft successfully! Reference: " . $reference;
+        } else {
+            $_SESSION['success'] = "Quotation created and sent successfully! Reference: " . $reference;
+        }
         header("Location: quotation_list.php");
         exit;
         

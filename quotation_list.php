@@ -87,7 +87,7 @@ $result = mysqli_query($conn, $query);
                             <th width="15%">Reference</th>
                             <th width="20%">Customer Name</th>
                             <th width="10%">Status</th>
-                            <th width="15%">Grand Total ($)</th>
+                            <th width="15%">Grand Total (₹)</th>
                             <th width="10%">Action</th>
                         </tr>
                     </thead>
@@ -136,7 +136,7 @@ $result = mysqli_query($conn, $query);
                                         <span class="badge <?= $status_class ?>"><?= $row['status'] ?></span>
                                     </td>
                                     <td>
-                                        <strong>$<?= number_format($row['grand_total'], 2) ?></strong>
+                                        <strong>₹<?= number_format($row['grand_total'], 2) ?></strong>
                                     </td>
                                     <td>
                                         <div class="btn-group">

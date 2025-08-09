@@ -172,8 +172,11 @@ $reference = 'QT' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
 
                 <!-- Action Buttons -->
                 <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-warning">
+                    <button type="button" class="btn btn-warning" id="save-draft-btn">
                         <i class="fas fa-save me-1"></i> Save as Draft
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-paper-plane me-1"></i> Send Quotation
                     </button>
                     <a href="quotation_list.php" class="btn btn-secondary me-2">
                         <i class="fas fa-list me-1"></i> View Quotations
@@ -181,6 +184,7 @@ $reference = 'QT' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
                 </div>
 
                 <input type="hidden" name="reference" value="<?= $reference ?>">
+                <input type="hidden" name="action_type" value="send" id="action-type">
             </form>
         </div>
     </div>
@@ -216,6 +220,31 @@ function updatePrice(selectElement) {
         }
     }
 }
+
+// Handle Save as Draft button
+$('#save-draft-btn').click(function() {
+    // Set action type to draft
+    $('#action-type').val('draft');
+    
+    // Remove required attributes temporarily for draft save
+    $('input[required], select[required], textarea[required]').each(function() {
+        $(this).removeAttr('required');
+        $(this).attr('data-was-required', 'true');
+    });
+    
+    // Submit the form
+    $('form').submit();
+});
+
+// Restore required attributes when sending quotation
+$('form').on('submit', function() {
+    if ($('#action-type').val() === 'send') {
+        $('input[data-was-required], select[data-was-required], textarea[data-was-required]').each(function() {
+            $(this).attr('required', 'required');
+            $(this).removeAttr('data-was-required');
+        });
+    }
+});
 </script>
 
 </body>
