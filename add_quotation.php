@@ -53,7 +53,7 @@ $reference = 'QT' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
             <?php endif; ?>
             
             <div class="form-header d-flex justify-content-between align-items-center mb-4">
-                <h4 class="form-title"><i class="fas fa-file-invoice me-2"></i>Quotation Add</h4>
+                <h4 class="form-title"><i class="fas fa-file-invoice me-2"></i>Create Quotation</h4>
                 <div>
                     <a href="quotation_list.php" class="btn btn-secondary me-2">
                         <i class="fas fa-list me-1"></i> View Quotations
@@ -61,36 +61,213 @@ $reference = 'QT' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
                 </div>
             </div>
 
-            <form action="quotation_save.php" method="POST">
-                <!-- Customer Information Section -->
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Customer Name</label>
-                        <div class="input-group">
-                            <input type="text" name="customer_name" class="form-control" placeholder="Select Customer" required>
-                            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#customerModal">
-                                <i class="fas fa-plus"></i>
-                            </button>
+            <form action="quotation_save_simple.php" method="POST">
+                <!-- Quotation Details Section -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Quotation Details</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label class="form-label">Quotation #</label>
+                                <input type="text" name="estimate_number" class="form-control" value="<?= $reference ?>" readonly>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Quotation Date</label>
+                                <input type="date" name="estimate_date" class="form-control" value="<?= date('Y-m-d') ?>" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Status</label>
+                                <select name="status" class="form-control">
+                                    <option value="Draft" selected>Draft</option>
+                                    <option value="Sent">Sent</option>
+                                    <option value="Approved">Approved</option>
+                                    <option value="Rejected">Rejected</option>
+                                </select>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Phone</label>
-                        <input type="text" name="phone" class="form-control" placeholder="Phone Number">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Company</label>
-                        <input type="text" name="company" class="form-control" placeholder="Company Name">
+                        <div class="row mt-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Currency Format</label>
+                                <select name="currency_format" class="form-control">
+                                    <option value="INR">₹ (INR) India Rupees</option>
+                                    <option value="USD">$ (USD) US Dollar</option>
+                                    <option value="EUR">€ (EUR) Euro</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Template</label>
+                                <select name="template" class="form-control">
+                                    <option value="Default" selected>Default</option>
+                                    <option value="Modern">Modern</option>
+                                    <option value="Classic">Classic</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Contact Person</label>
-                        <textarea name="contact_person" class="form-control" rows="3" placeholder="Contact Person Details"></textarea>
+                <!-- Client Details Section -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="fas fa-user me-2"></i>Client Details</h6>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Address</label>
-                        <textarea name="address" class="form-control" rows="3" placeholder="Customer Address"></textarea>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Client</label>
+                                <div class="input-group">
+                                    <select name="client_id" class="form-control" id="client-select">
+                                        <option value="">Select Client</option>
+                                        <!-- Client options will be populated here -->
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary" title="Add New Client">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Reference</label>
+                                <input type="text" name="reference" class="form-control" placeholder="Reference Number">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Currency</label>
+                                <select name="currency" class="form-control">
+                                    <option value="INR" selected>(INR) India Rupees</option>
+                                    <option value="USD">(USD) US Dollar</option>
+                                    <option value="EUR">(EUR) Euro</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Salesperson</label>
+                                <input type="text" name="salesperson" class="form-control" placeholder="Enter salesperson name">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Global Tax</label>
+                                <div class="input-group">
+                                    <input type="number" name="global_tax" class="form-control" step="0.01" min="0" value="18.0">
+                                    <select name="tax_type" class="form-control" style="max-width: 120px;">
+                                        <option value="Percentage" selected>Percentage</option>
+                                        <option value="Fixed">Fixed</option>
+                                    </select>
+                                </div>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" name="tax_calculate_after_discount" id="taxAfterDiscount" checked>
+                                    <label class="form-check-label" for="taxAfterDiscount">
+                                        Tax calculate after discount
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bill To Section -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="fas fa-file-invoice me-2"></i>Bill To</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Company</label>
+                                <input type="text" name="bill_company" class="form-control" placeholder="Company Name">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Client Name</label>
+                                <input type="text" name="bill_client_name" class="form-control" placeholder="Client Name">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Address</label>
+                                <textarea name="bill_address" class="form-control" rows="2" placeholder="Billing Address"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Country</label>
+                                        <select name="bill_country" class="form-control">
+                                            <option value="">Select Country</option>
+                                            <option value="India" selected>India</option>
+                                            <option value="USA">USA</option>
+                                            <option value="UK">UK</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">City</label>
+                                        <input type="text" name="bill_city" class="form-control" placeholder="City">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label">State</label>
+                                <input type="text" name="bill_state" class="form-control" placeholder="State">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Postal</label>
+                                <input type="text" name="bill_postal" class="form-control" placeholder="Postal Code">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ship To Section -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="fas fa-shipping-fast me-2"></i>Ship To</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Company</label>
+                                <input type="text" name="ship_company" class="form-control" placeholder="Company Name">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Client Name</label>
+                                <input type="text" name="ship_client_name" class="form-control" placeholder="Client Name">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Address</label>
+                                <textarea name="ship_address" class="form-control" rows="2" placeholder="Shipping Address"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Country</label>
+                                        <select name="ship_country" class="form-control">
+                                            <option value="">Select Country</option>
+                                            <option value="India" selected>India</option>
+                                            <option value="USA">USA</option>
+                                            <option value="UK">UK</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">City</label>
+                                        <input type="text" name="ship_city" class="form-control" placeholder="City">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label">State</label>
+                                <input type="text" name="ship_state" class="form-control" placeholder="State">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Postal</label>
+                                <input type="text" name="ship_postal" class="form-control" placeholder="Postal Code">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -101,90 +278,130 @@ $reference = 'QT' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
                     </div>
                 </div>
 
-                <!-- Product Section -->
-                <h5 class="section-subtitle"><i class="fas fa-box-open me-2"></i>Product Items</h5>
-                <div id="product-items">
-                    <div class="row product-row align-items-end mb-3 bg-light p-3 rounded">
-                        <div class="col-md-4 mb-2">
-                            <label>Product Name</label>
-                            <?php if (!empty($products)): ?>
-                                <select name="product_name[]" class="form-control product-select" required onchange="updatePrice(this)">
-                                    <option value="">Select Product</option>
-                                    <?php foreach ($products as $product): ?>
-                                        <option value="<?= htmlspecialchars($product['product_name']) ?>" 
-                                                data-price="<?= $product['price'] ?>">
-                                            <?= htmlspecialchars($product['product_name']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            <?php else: ?>
-                                <input type="text" name="product_name[]" class="form-control" required placeholder="Enter product name">
-                                <small class="text-muted">No products found. <a href="product_setup.php">Setup products</a> or enter manually.</small>
-                            <?php endif; ?>
+                <!-- Line Items Section -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="fas fa-list me-2"></i>Line Items</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="line-items-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 25%;">Product Title/Description</th>
+                                        <th style="width: 10%;">Quantity</th>
+                                        <th style="width: 15%;">Unit Price</th>
+                                        <th style="width: 15%;">Tax/Discount</th>
+                                        <th style="width: 15%;">Amount</th>
+                                        <th style="width: 10%;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="product-items">
+                                    <tr class="product-row">
+                                        <td>
+                                            <select name="product_name[]" class="form-control product-select" required onchange="updatePrice(this)">
+                                                <option value="">Select Product</option>
+                                                <?php foreach ($products as $product): ?>
+                                                    <option value="<?= htmlspecialchars($product['product_name']) ?>" 
+                                                            data-price="<?= $product['price'] ?>">
+                                                        <?= htmlspecialchars($product['product_name']) ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select name="quantity_unit[]" class="form-control mb-1">
+                                                <option value="Quantity" selected>Quantity</option>
+                                                <option value="Hours">Hours</option>
+                                                <option value="Days">Days</option>
+                                                <option value="Pieces">Pieces</option>
+                                            </select>
+                                            <input type="number" name="quantity[]" class="form-control" step="0.01" min="0" placeholder="0" required>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="unit_price[]" class="form-control" step="0.01" min="0" placeholder="0.00" required>
+                                        </td>
+                                        <td>
+                                            <select name="tax_discount_type[]" class="form-control mb-1">
+                                                <option value="Select">Select</option>
+                                                <option value="Tax">Tax</option>
+                                                <option value="Discount">Discount</option>
+                                            </select>
+                                            <div class="input-group">
+                                                <input type="number" name="tax_discount_value[]" class="form-control" step="0.01" min="0" placeholder="0.00">
+                                                <span class="input-group-text"><i class="fas fa-info-circle"></i></span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <input type="text" name="amount[]" class="form-control amount-field" value="0.00" readonly>
+                                        </td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-success btn-sm add-row-btn" title="Add Row">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-danger btn-sm remove-row-btn mt-1" title="Remove Row">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <div class="col-md-3 mb-2">
-                            <label>Quantity</label>
-                            <input type="number" name="quantity[]" class="form-control" required>
+                        
+                        <!-- Quotation Comments/Instructions -->
+                        <div class="mt-4">
+                            <label class="form-label">Quotation Comments/Instructions</label>
+                            <textarea name="estimate_comments" class="form-control" rows="3" placeholder="Additional comments or instructions for this quotation"></textarea>
                         </div>
-                        <div class="col-md-3 mb-2">
-                            <label>Price (₹)</label>
-                            <input type="number" step="0.01" name="price[]" class="form-control" required>
-                        </div>
-                        <div class="col-md-2 text-end">
-                            <button type="button" class="btn btn-outline-danger btn-sm remove-row"><i class="fas fa-trash"></i></button>
+                        
+                        <!-- Summary Section -->
+                        <div class="row mt-4">
+                            <div class="col-md-8"></div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>Subtotal:</span>
+                                            <span id="subtotal-amount">0.00</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>Tax:</span>
+                                            <span id="tax-amount">0.00</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>Discount:</span>
+                                            <span id="discount-amount">0.00</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>Fees:</span>
+                                            <span id="fees-amount">0.00</span>
+                                        </div>
+                                        <hr>
+                                        <div class="d-flex justify-content-between fw-bold">
+                                            <span>Total:</span>
+                                            <span id="total-amount">0.00</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <button type="button" id="add-row" class="btn btn-outline-primary btn-sm mb-4"><i class="fas fa-plus"></i> Add More Items</button>
 
-                <!-- Financial Details -->
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <label class="form-label">Margin %</label>
-                        <input type="number" name="margin_percent" class="form-control" step="0.01" min="0" max="100" value="0">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Discount %</label>
-                        <input type="number" name="discount_percent" class="form-control" step="0.01" min="0" max="100" value="0">
-                    </div>
-                </div>
-
-                <!-- Follow-up Section -->
-                <div class="row mb-4">
-                    <div class="col-md-4">
-                        <label class="form-label">Follow-up Date</label>
-                        <input type="date" name="follow_up_date" class="form-control">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Follow-up Method</label>
-                        <select name="follow_up_method" class="form-control">
-                            <option value="Call">Call</option>
-                            <option value="Email">Email</option>
-                            <option value="Visit">Visit</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Follow-up Notes</label>
-                        <textarea name="follow_up_notes" class="form-control" rows="1" placeholder="Follow-up notes"></textarea>
-                    </div>
-                </div>
 
                 <!-- Action Buttons -->
-                <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-warning" id="save-draft-btn">
-                        <i class="fas fa-save me-1"></i> Save as Draft
-                    </button>
+                <div class="d-flex justify-content-end gap-2 mt-4">
                     <button type="submit" class="btn btn-success">
-                        <i class="fas fa-paper-plane me-1"></i> Send Quotation
+                        <i class="fas fa-save me-1"></i> Save
                     </button>
-                    <a href="quotation_list.php" class="btn btn-secondary me-2">
-                        <i class="fas fa-list me-1"></i> View Quotations
-                    </a>
+                    <button type="button" class="btn btn-secondary" onclick="window.location.href='quotation_list.php'">
+                        <i class="fas fa-times me-1"></i> Cancel
+                    </button>
                 </div>
 
                 <input type="hidden" name="reference" value="<?= $reference ?>">
-                <input type="hidden" name="action_type" value="send" id="action-type">
+                <input type="hidden" name="action_type" value="save" id="action-type">
             </form>
         </div>
     </div>
@@ -194,57 +411,160 @@ $reference = 'QT' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-$('#add-row').click(function() {
-    let row = $('.product-row').first().clone();
-    row.find('input').val('');
-    row.find('select').val('');
-    $('#product-items').append(row);
-});
-
-$(document).on('click', '.remove-row', function () {
-    if ($('.product-row').length > 1) {
-        $(this).closest('.product-row').remove();
-    }
-});
-
-// Auto-populate price when product is selected (only works with dropdown)
-function updatePrice(selectElement) {
-    if (selectElement && selectElement.options) {
-        const selectedOption = selectElement.options[selectElement.selectedIndex];
-        const price = selectedOption.getAttribute('data-price');
-        const row = selectElement.closest('.product-row');
-        const priceInput = row.querySelector('input[name="price[]"]');
-        
-        if (price && priceInput) {
-            priceInput.value = price;
-        }
-    }
-}
-
-// Handle Save as Draft button
-$('#save-draft-btn').click(function() {
-    // Set action type to draft
-    $('#action-type').val('draft');
-    
-    // Remove required attributes temporarily for draft save
-    $('input[required], select[required], textarea[required]').each(function() {
-        $(this).removeAttr('required');
-        $(this).attr('data-was-required', 'true');
+$(document).ready(function() {
+    // Calculate amounts on input change
+    $(document).on('input', 'input[name="quantity[]"], input[name="unit_price[]"], input[name="tax_discount_value[]"]', function() {
+        calculateRowAmount($(this).closest('tr'));
+        calculateTotals();
     });
     
-    // Submit the form
-    $('form').submit();
+    // Calculate amounts on dropdown change
+    $(document).on('change', 'select[name="tax_discount_type[]"]', function() {
+        calculateRowAmount($(this).closest('tr'));
+        calculateTotals();
+    });
+    
+    // Add new row
+    $(document).on('click', '.add-row-btn', function() {
+        addNewRow();
+    });
+    
+    // Remove row
+    $(document).on('click', '.remove-row-btn', function() {
+        if ($('.product-row').length > 1) {
+            $(this).closest('tr').remove();
+            calculateTotals();
+        } else {
+            alert('At least one item is required.');
+        }
+    });
+    
+    // Initial calculation
+    calculateTotals();
 });
 
-// Restore required attributes when sending quotation
-$('form').on('submit', function() {
-    if ($('#action-type').val() === 'send') {
-        $('input[data-was-required], select[data-was-required], textarea[data-was-required]').each(function() {
-            $(this).attr('required', 'required');
-            $(this).removeAttr('data-was-required');
-        });
+function addNewRow() {
+    const newRow = `
+        <tr class="product-row">
+            <td>
+                <select name="product_name[]" class="form-control product-select" required onchange="updatePrice(this)">
+                    <option value="">Select Product</option>
+                    <?php foreach ($products as $product): ?>
+                        <option value="<?= htmlspecialchars($product['product_name']) ?>" 
+                                data-price="<?= $product['price'] ?>">
+                            <?= htmlspecialchars($product['product_name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </td>
+            <td>
+                <select name="quantity_unit[]" class="form-control mb-1">
+                    <option value="Quantity" selected>Quantity</option>
+                    <option value="Hours">Hours</option>
+                    <option value="Days">Days</option>
+                    <option value="Pieces">Pieces</option>
+                </select>
+                <input type="number" name="quantity[]" class="form-control" step="0.01" min="0" placeholder="0" required>
+            </td>
+            <td>
+                <input type="number" name="unit_price[]" class="form-control" step="0.01" min="0" placeholder="0.00" required>
+            </td>
+            <td>
+                <select name="tax_discount_type[]" class="form-control mb-1">
+                    <option value="Select">Select</option>
+                    <option value="Tax">Tax</option>
+                    <option value="Discount">Discount</option>
+                </select>
+                <div class="input-group">
+                    <input type="number" name="tax_discount_value[]" class="form-control" step="0.01" min="0" placeholder="0.00">
+                    <span class="input-group-text"><i class="fas fa-info-circle"></i></span>
+                </div>
+            </td>
+            <td>
+                <input type="text" name="amount[]" class="form-control amount-field" value="0.00" readonly>
+            </td>
+            <td class="text-center">
+                <button type="button" class="btn btn-success btn-sm add-row-btn" title="Add Row">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button type="button" class="btn btn-danger btn-sm remove-row-btn mt-1" title="Remove Row">
+                    <i class="fas fa-times"></i>
+                </button>
+            </td>
+        </tr>
+    `;
+    $('#product-items').append(newRow);
+}
+
+function calculateRowAmount(row) {
+    const quantity = parseFloat(row.find('input[name="quantity[]"]').val()) || 0;
+    const unitPrice = parseFloat(row.find('input[name="unit_price[]"]').val()) || 0;
+    const taxDiscountType = row.find('select[name="tax_discount_type[]"]').val();
+    const taxDiscountValue = parseFloat(row.find('input[name="tax_discount_value[]"]').val()) || 0;
+    
+    let subtotal = quantity * unitPrice;
+    let amount = subtotal;
+    
+    if (taxDiscountType === 'Tax') {
+        amount = subtotal + (subtotal * taxDiscountValue / 100);
+    } else if (taxDiscountType === 'Discount') {
+        amount = subtotal - (subtotal * taxDiscountValue / 100);
     }
+    
+    row.find('input[name="amount[]"]').val(amount.toFixed(2));
+}
+
+function calculateTotals() {
+    let subtotal = 0;
+    let totalTax = 0;
+    let totalDiscount = 0;
+    
+    $('.product-row').each(function() {
+        const quantity = parseFloat($(this).find('input[name="quantity[]"]').val()) || 0;
+        const unitPrice = parseFloat($(this).find('input[name="unit_price[]"]').val()) || 0;
+        const taxDiscountType = $(this).find('select[name="tax_discount_type[]"]').val();
+        const taxDiscountValue = parseFloat($(this).find('input[name="tax_discount_value[]"]').val()) || 0;
+        
+        const rowSubtotal = quantity * unitPrice;
+        subtotal += rowSubtotal;
+        
+        if (taxDiscountType === 'Tax') {
+            totalTax += (rowSubtotal * taxDiscountValue / 100);
+        } else if (taxDiscountType === 'Discount') {
+            totalDiscount += (rowSubtotal * taxDiscountValue / 100);
+        }
+    });
+    
+    const globalTax = parseFloat($('input[name="global_tax"]').val()) || 0;
+    const globalTaxAmount = subtotal * globalTax / 100;
+    
+    const total = subtotal + totalTax + globalTaxAmount - totalDiscount;
+    
+    $('#subtotal-amount').text(subtotal.toFixed(2));
+    $('#tax-amount').text((totalTax + globalTaxAmount).toFixed(2));
+    $('#discount-amount').text(totalDiscount.toFixed(2));
+    $('#fees-amount').text('0.00'); // Can be extended for fees
+    $('#total-amount').text(total.toFixed(2));
+}
+
+// Update global tax calculation when changed
+$(document).on('input', 'input[name="global_tax"]', function() {
+    calculateTotals();
 });
+
+// Auto-populate price when product is selected
+function updatePrice(selectElement) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    const price = selectedOption.getAttribute('data-price');
+    const row = selectElement.closest('tr');
+    const priceInput = row.querySelector('input[name="unit_price[]"]');
+    
+    if (price && priceInput) {
+        priceInput.value = price;
+        calculateRowAmount($(row));
+        calculateTotals();
+    }
+}
 </script>
 
 </body>

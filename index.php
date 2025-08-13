@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 <div class="login-container">
   <div class="login-card">
-    <h3 class="login-title"><i class="fas fa-lock"></i> Cosmic Login</h3>
+    <h3 class="login-title"><i class="fas fa-lock"></i> Cosmic Inventory Login</h3>
 
     <?php if ($error): ?>
       <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       <button type="submit" class="btn btn-login w-100">Login</button>
     </form>
 
-    <p class="login-footer">© <?= date('Y') ?> Cosmic Invoice</p>
+    <p class="login-footer">© <?= date('Y') ?> Cosmic Inventory System</p>
   </div>
 </div>
 

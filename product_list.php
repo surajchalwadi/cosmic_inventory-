@@ -61,14 +61,14 @@ $result = mysqli_query($conn, $query);
                 </div>
                 <div class="col-md-6 text-end">
                     <div class="btn-group">
-                        <button class="btn btn-outline-danger btn-sm">
-                            <i class="fas fa-file-pdf"></i>
+                        <button class="btn btn-outline-danger btn-sm" onclick="exportToPDF()">
+                            <i class="fas fa-file-pdf"></i> PDF
                         </button>
-                        <button class="btn btn-outline-success btn-sm">
-                            <i class="fas fa-file-excel"></i>
+                        <button class="btn btn-outline-success btn-sm" onclick="exportToExcel()">
+                            <i class="fas fa-file-excel"></i> Excel
                         </button>
-                        <button class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-print"></i>
+                        <button class="btn btn-outline-primary btn-sm" onclick="printTable()">
+                            <i class="fas fa-print"></i> Print
                         </button>
                     </div>
                 </div>
@@ -190,6 +190,8 @@ $result = mysqli_query($conn, $query);
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- html2pdf for client-side PDF generation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
 // Search functionality
 document.getElementById('searchInput').addEventListener('keyup', function() {
@@ -221,6 +223,178 @@ document.querySelectorAll('.row-checkbox').forEach(checkbox => {
         selectAllCheckbox.indeterminate = checkedCheckboxes.length > 0 && checkedCheckboxes.length < allCheckboxes.length;
     });
 });
+
+// Export functions
+function exportToPDF() {
+    // Get selected products
+    const selectedRows = document.querySelectorAll('.row-checkbox:checked');
+    if (selectedRows.length === 0) {
+        alert('Please select at least one product to export');
+        return;
+    }
+
+    // Collect selected product data
+    const selectedProducts = [];
+    selectedRows.forEach(checkbox => {
+        const row = checkbox.closest('tr');
+        const cells = row.querySelectorAll('td');
+        if (cells.length > 2) {
+            selectedProducts.push({
+                name: cells[2].textContent.trim(),
+                description: cells[3].textContent.trim(),
+                price: cells[4].textContent.trim(),
+                status: cells[5].textContent.trim()
+            });
+        }
+    });
+
+    // Create hidden iframe to load PDF-optimized page with selected products
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    
+    // Pass selected products as URL parameters
+    const selectedData = encodeURIComponent(JSON.stringify(selectedProducts));
+    iframe.src = 'product_pdf_view.php?selected=' + selectedData;
+    document.body.appendChild(iframe);
+
+    iframe.onload = function() {
+        try {
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            const content = doc.querySelector('#pdf-root') || doc.body;
+            const opt = {
+                margin:       [10, 10, 10, 10],
+                filename:     'products_list_' + new Date().toISOString().split('T')[0] + '.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(content).save().then(() => {
+                setTimeout(() => { document.body.removeChild(iframe); }, 500);
+            }).catch(() => {
+                document.body.removeChild(iframe);
+                alert('Failed to generate PDF.');
+            });
+        } catch (e) {
+            document.body.removeChild(iframe);
+            alert('PDF generation blocked by browser.');
+        }
+    };
+}
+
+function exportToExcel() {
+    // Get selected products
+    const selectedRows = document.querySelectorAll('.row-checkbox:checked');
+    if (selectedRows.length === 0) {
+        alert('Please select at least one product to export');
+        return;
+    }
+
+    let csv = 'Product Name,Description,Price (₹),Status\n';
+    
+    selectedRows.forEach(checkbox => {
+        const row = checkbox.closest('tr');
+        const cells = row.querySelectorAll('td');
+        if (cells.length > 2) {
+            const productName = cells[2].textContent.trim();
+            const description = cells[3].textContent.trim().replace(/\n/g, ' ');
+            const price = cells[4].textContent.trim();
+            const status = cells[5].textContent.trim();
+            
+            csv += `"${productName}","${description}","${price}","${status}"\n`;
+        }
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'products_export_' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+function printTable() {
+    // Get selected products
+    const selectedRows = document.querySelectorAll('.row-checkbox:checked');
+    if (selectedRows.length === 0) {
+        alert('Please select at least one product to print');
+        return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    
+    // Create table HTML for selected products
+    let tableHTML = `
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+            <thead>
+                <tr>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f2f2f2;">#</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f2f2f2;">Product Name</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f2f2f2;">Description</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f2f2f2;">Price (₹)</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f2f2f2;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    let i = 1;
+    selectedRows.forEach(checkbox => {
+        const row = checkbox.closest('tr');
+        const cells = row.querySelectorAll('td');
+        if (cells.length > 2) {
+            const productName = cells[2].textContent.trim();
+            const description = cells[3].textContent.trim();
+            const price = cells[4].textContent.trim();
+            const status = cells[5].textContent.trim();
+            
+            tableHTML += `
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${i++}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${productName}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${description}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${price}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${status}</td>
+                </tr>
+            `;
+        }
+    });
+    
+    tableHTML += `
+            </tbody>
+        </table>
+    `;
+    
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Products List</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .header { text-align: center; margin-bottom: 20px; }
+                @media print { body { margin: 0; } }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>Cosmic Solutions - Products List</h2>
+                <p>Generated on: ${new Date().toLocaleDateString()}</p>
+                <p>Selected Products: ${selectedRows.length}</p>
+            </div>
+            ${tableHTML}
+        </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.print();
+}
 </script>
 
 </body>

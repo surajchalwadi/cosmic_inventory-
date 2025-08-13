@@ -8,107 +8,147 @@ if (!isset($_SESSION['user']) || !in_array($_SESSION['user']['role'], ['admin', 
 include 'config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $estimate_id = intval($_POST['estimate_id']);
+    
+    // Validate estimate exists
+    $check_query = "SELECT estimate_id FROM estimates WHERE estimate_id = ?";
+    $check_stmt = mysqli_prepare($conn, $check_query);
+    mysqli_stmt_bind_param($check_stmt, "i", $estimate_id);
+    mysqli_stmt_execute($check_stmt);
+    $check_result = mysqli_stmt_get_result($check_stmt);
+    
+    if (mysqli_num_rows($check_result) == 0) {
+        $_SESSION['error'] = "Estimate not found.";
+        header("Location: quotation_list.php");
+        exit;
+    }
+    
+    // Start transaction
+    mysqli_begin_transaction($conn);
+    
     try {
-        // Start transaction
-        mysqli_begin_transaction($conn);
-        
-        // Get form data
-        $quotation_id = intval($_POST['quotation_id']);
-        $reference = mysqli_real_escape_string($conn, $_POST['reference']);
-        $customer_name = mysqli_real_escape_string($conn, $_POST['customer_name']);
-        $phone = mysqli_real_escape_string($conn, $_POST['phone']);
-        $company = mysqli_real_escape_string($conn, $_POST['company']);
-        $contact_person = mysqli_real_escape_string($conn, $_POST['contact_person']);
-        $address = mysqli_real_escape_string($conn, $_POST['address']);
-        $additional_info = mysqli_real_escape_string($conn, $_POST['additional_info']);
-        $margin_percent = floatval($_POST['margin_percent']);
-        $discount_percent = floatval($_POST['discount_percent']);
-        $follow_up_date = !empty($_POST['follow_up_date']) ? $_POST['follow_up_date'] : null;
-        $follow_up_method = mysqli_real_escape_string($conn, $_POST['follow_up_method']);
-        $follow_up_notes = mysqli_real_escape_string($conn, $_POST['follow_up_notes']);
-        $status = mysqli_real_escape_string($conn, $_POST['status']);
-        
-        // Calculate grand total
-        $grand_total = 0;
-        if (isset($_POST['price']) && isset($_POST['quantity']) && is_array($_POST['price']) && is_array($_POST['quantity'])) {
-            for ($i = 0; $i < count($_POST['price']); $i++) {
-                if (isset($_POST['quantity'][$i]) && isset($_POST['price'][$i])) {
-                    $item_total = floatval($_POST['quantity'][$i]) * floatval($_POST['price'][$i]);
-                    $grand_total += $item_total;
-                }
-            }
-        }
-        
-        // Apply margin and discount
-        $grand_total = $grand_total * (1 + $margin_percent / 100);
-        $grand_total = $grand_total * (1 - $discount_percent / 100);
-        
-        // Update quotation
-        $quotation_query = "UPDATE quotations SET 
-            customer_name = ?, phone = ?, company = ?, contact_person = ?, address = ?, 
-            additional_info = ?, margin_percent = ?, discount_percent = ?, follow_up_date = ?, 
-            follow_up_method = ?, follow_up_notes = ?, status = ?, grand_total = ?, 
+        // Update estimate details
+        $update_query = "UPDATE estimates SET 
+            estimate_date = ?,
+            status = ?,
+            currency = ?,
+            global_tax = ?,
+            salesperson = ?,
+            bill_client_name = ?,
+            bill_company = ?,
+            bill_address = ?,
+            estimate_comments = ?,
             updated_at = CURRENT_TIMESTAMP
-            WHERE quotation_id = ?";
-        
-        $stmt = mysqli_prepare($conn, $quotation_query);
-        mysqli_stmt_bind_param($stmt, "ssssssddssssdi", 
-            $customer_name, $phone, $company, $contact_person, $address, 
-            $additional_info, $margin_percent, $discount_percent, 
-            $follow_up_date, $follow_up_method, $follow_up_notes, $status, $grand_total, $quotation_id
+            WHERE estimate_id = ?";
+            
+        $update_stmt = mysqli_prepare($conn, $update_query);
+        mysqli_stmt_bind_param($update_stmt, "sssdsssssi", 
+            $_POST['estimate_date'],
+            $_POST['status'],
+            $_POST['currency'],
+            $_POST['global_tax'],
+            $_POST['salesperson'],
+            $_POST['bill_client_name'],
+            $_POST['bill_company'],
+            $_POST['bill_address'],
+            $_POST['estimate_comments'],
+            $estimate_id
         );
         
-        if (!mysqli_stmt_execute($stmt)) {
-            throw new Exception("Error updating quotation: " . mysqli_error($conn));
+        if (!mysqli_stmt_execute($update_stmt)) {
+            throw new Exception("Error updating estimate: " . mysqli_error($conn));
         }
         
-        // Delete existing quotation items
-        $delete_items = "DELETE FROM quotation_items WHERE quotation_id = ?";
+        // Delete existing items
+        $delete_items = "DELETE FROM estimate_items WHERE estimate_id = ?";
         $delete_stmt = mysqli_prepare($conn, $delete_items);
-        mysqli_stmt_bind_param($delete_stmt, "i", $quotation_id);
+        mysqli_stmt_bind_param($delete_stmt, "i", $estimate_id);
         
         if (!mysqli_stmt_execute($delete_stmt)) {
-            throw new Exception("Error deleting existing quotation items: " . mysqli_error($conn));
+            throw new Exception("Error deleting existing items: " . mysqli_error($conn));
         }
         
-        // Insert updated quotation items
-        if (isset($_POST['product_name']) && is_array($_POST['product_name'])) {
-            $item_query = "INSERT INTO quotation_items (quotation_id, product_name, quantity, price, total_amount) VALUES (?, ?, ?, ?, ?)";
-            $item_stmt = mysqli_prepare($conn, $item_query);
+        // Insert new items
+        $subtotal = 0;
+        $tax_amount = 0;
+        $discount_amount = 0;
+        
+        if (isset($_POST['items']) && is_array($_POST['items']['description'])) {
+            $insert_item = "INSERT INTO estimate_items (estimate_id, product_description, quantity, unit_price, tax_discount_type, tax_discount_value, amount) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            $insert_stmt = mysqli_prepare($conn, $insert_item);
             
-            for ($i = 0; $i < count($_POST['product_name']); $i++) {
-                if (!empty($_POST['product_name'][$i])) {
-                    $product_name = mysqli_real_escape_string($conn, $_POST['product_name'][$i]);
-                    $quantity = intval($_POST['quantity'][$i]);
-                    $price = floatval($_POST['price'][$i]);
-                    $total_amount = $quantity * $price;
-                    
-                    mysqli_stmt_bind_param($item_stmt, "isidd", 
-                        $quotation_id, $product_name, $quantity, 
-                        $price, $total_amount
-                    );
-                    
-                    if (!mysqli_stmt_execute($item_stmt)) {
-                        throw new Exception("Error inserting quotation item: " . mysqli_error($conn));
-                    }
+            for ($i = 0; $i < count($_POST['items']['description']); $i++) {
+                $description = $_POST['items']['description'][$i];
+                $quantity = floatval($_POST['items']['quantity'][$i]);
+                $unit_price = floatval($_POST['items']['unit_price'][$i]);
+                $tax_discount_type = $_POST['items']['tax_discount_type'][$i];
+                $tax_discount_value = floatval($_POST['items']['tax_discount_value'][$i]);
+                
+                // Calculate amount
+                $amount = $quantity * $unit_price;
+                
+                // Apply tax or discount
+                if ($tax_discount_type == 'Tax' && $tax_discount_value > 0) {
+                    $tax_amount += ($amount * $tax_discount_value / 100);
+                } elseif ($tax_discount_type == 'Discount' && $tax_discount_value > 0) {
+                    $discount_amount += ($amount * $tax_discount_value / 100);
+                    $amount = $amount * (1 - $tax_discount_value / 100);
+                }
+                
+                $subtotal += $amount;
+                
+                mysqli_stmt_bind_param($insert_stmt, "isdddsd", 
+                    $estimate_id,
+                    $description,
+                    $quantity,
+                    $unit_price,
+                    $tax_discount_type,
+                    $tax_discount_value,
+                    $amount
+                );
+                
+                if (!mysqli_stmt_execute($insert_stmt)) {
+                    throw new Exception("Error inserting item: " . mysqli_error($conn));
                 }
             }
+        }
+        
+        // Calculate totals
+        $total_amount = $subtotal + $tax_amount - $discount_amount;
+        
+        // Update totals in estimates table
+        $update_totals = "UPDATE estimates SET 
+            subtotal = ?,
+            tax_amount = ?,
+            discount_amount = ?,
+            total_amount = ?
+            WHERE estimate_id = ?";
+            
+        $totals_stmt = mysqli_prepare($conn, $update_totals);
+        mysqli_stmt_bind_param($totals_stmt, "ddddi", 
+            $subtotal,
+            $tax_amount,
+            $discount_amount,
+            $total_amount,
+            $estimate_id
+        );
+        
+        if (!mysqli_stmt_execute($totals_stmt)) {
+            throw new Exception("Error updating totals: " . mysqli_error($conn));
         }
         
         // Commit transaction
         mysqli_commit($conn);
-        
-        $_SESSION['success'] = "Quotation updated successfully! Reference: " . $reference;
-        header("Location: quotation_list.php");
-        exit;
+        $_SESSION['success'] = "Quotation updated successfully!";
         
     } catch (Exception $e) {
         // Rollback transaction
         mysqli_rollback($conn);
         $_SESSION['error'] = $e->getMessage();
-        header("Location: quotation_edit.php?id=" . $quotation_id);
-        exit;
     }
+    
+    header("Location: quotation_list.php");
+    exit;
 } else {
     header("Location: quotation_list.php");
     exit;
