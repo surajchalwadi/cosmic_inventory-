@@ -105,10 +105,10 @@ $items_result = mysqli_stmt_get_result($items_stmt);
                     </div>
                 </div>
                 <div>
-                    <div class="quotation-title">ESTIMATE</div>
+                    <div class="quotation-title">QUOTATION</div>
                     <div style="text-align: right; font-size: 14px;">
-                        <div><strong>Estimate Number:</strong> <?= htmlspecialchars($estimate['estimate_number']) ?></div>
-                        <div><strong>Estimate Date:</strong> <?= date('d-m-Y', strtotime($estimate['estimate_date'])) ?></div>
+                        <div><strong>Quotation Number:</strong> <?= htmlspecialchars($estimate['estimate_number']) ?></div>
+                        <div><strong>Quotation Date:</strong> <?= date('d-m-Y', strtotime($estimate['estimate_date'])) ?></div>
                         <div><strong>Status:</strong> <?= htmlspecialchars($estimate['status']) ?></div>
                     </div>
                 </div>

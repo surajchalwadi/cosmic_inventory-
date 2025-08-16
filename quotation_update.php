@@ -73,12 +73,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $tax_amount = 0;
         $discount_amount = 0;
         
-        if (isset($_POST['items']) && is_array($_POST['items']['description'])) {
-            $insert_item = "INSERT INTO estimate_items (estimate_id, product_description, quantity, unit_price, tax_discount_type, tax_discount_value, amount) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        if (isset($_POST['items']) && is_array($_POST['items']['product_description'])) {
+            $insert_item = "INSERT INTO estimate_items (estimate_id, product_description, quantity_unit, quantity, unit_price, tax_discount_type, tax_discount_value, amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             $insert_stmt = mysqli_prepare($conn, $insert_item);
             
-            for ($i = 0; $i < count($_POST['items']['description']); $i++) {
-                $description = $_POST['items']['description'][$i];
+            for ($i = 0; $i < count($_POST['items']['product_description']); $i++) {
+                $description = $_POST['items']['product_description'][$i];
+                $quantity_unit = $_POST['items']['quantity_unit'][$i] ?? 'Quantity';
                 $quantity = floatval($_POST['items']['quantity'][$i]);
                 $unit_price = floatval($_POST['items']['unit_price'][$i]);
                 $tax_discount_type = $_POST['items']['tax_discount_type'][$i];
@@ -97,9 +98,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 
                 $subtotal += $amount;
                 
-                mysqli_stmt_bind_param($insert_stmt, "isdddsd", 
+                mysqli_stmt_bind_param($insert_stmt, "issddsdd", 
                     $estimate_id,
                     $description,
+                    $quantity_unit,
                     $quantity,
                     $unit_price,
                     $tax_discount_type,

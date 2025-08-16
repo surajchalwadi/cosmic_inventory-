@@ -56,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $total_tax = 0;
         $total_discount = 0;
         $fees_amount = 0;
+        $item_amounts = []; // Store calculated amounts for each item
         
         if (isset($_POST['product_description']) && is_array($_POST['product_description'])) {
             for ($i = 0; $i < count($_POST['product_description']); $i++) {
@@ -65,21 +66,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $tax_discount_type = $_POST['tax_discount_type'][$i] ?? 'Select';
                     $tax_discount_value = floatval($_POST['tax_discount_value'][$i] ?? 0);
                     
-                    $item_subtotal = $quantity * $unit_price;
-                    $subtotal += $item_subtotal;
+                    // Calculate base amount for this item
+                    $item_base_amount = $quantity * $unit_price;
+                    $item_final_amount = $item_base_amount;
                     
-                    if ($tax_discount_type === 'Tax') {
-                        $total_tax += ($item_subtotal * $tax_discount_value / 100);
-                    } elseif ($tax_discount_type === 'Discount') {
-                        $total_discount += ($item_subtotal * $tax_discount_value / 100);
+                    // Apply individual item tax/discount
+                    if ($tax_discount_type === 'Tax' && $tax_discount_value > 0) {
+                        $item_tax = ($item_base_amount * $tax_discount_value / 100);
+                        $total_tax += $item_tax;
+                        $item_final_amount = $item_base_amount; // Tax is added separately
+                    } elseif ($tax_discount_type === 'Discount' && $tax_discount_value > 0) {
+                        $item_discount = ($item_base_amount * $tax_discount_value / 100);
+                        $total_discount += $item_discount;
+                        $item_final_amount = $item_base_amount - $item_discount;
                     }
+                    
+                    $subtotal += $item_base_amount;
+                    $item_amounts[$i] = $item_final_amount; // Store final amount for this item
                 }
             }
         }
         
-        // Add global tax
-        $global_tax_amount = $subtotal * $global_tax / 100;
-        $total_tax += $global_tax_amount;
+        // Add global tax (applied to subtotal after individual discounts)
+        if ($global_tax > 0) {
+            $global_tax_amount = ($subtotal - $total_discount) * $global_tax / 100;
+            $total_tax += $global_tax_amount;
+        }
         
         $total_amount = $subtotal + $total_tax - $total_discount + $fees_amount;
         
@@ -114,7 +126,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $unit_price = floatval($_POST['unit_price'][$i] ?? 0);
                     $tax_discount_type = mysqli_real_escape_string($conn, $_POST['tax_discount_type'][$i] ?? 'Select');
                     $tax_discount_value = floatval($_POST['tax_discount_value'][$i] ?? 0);
-                    $amount = floatval($_POST['amount'][$i] ?? 0);
+                    
+                    // Use the calculated amount from our calculation above
+                    $amount = isset($item_amounts[$i]) ? $item_amounts[$i] : ($quantity * $unit_price);
                     
                     $item_query = "INSERT INTO estimate_items (
                         estimate_id, product_description, quantity_unit, quantity, 
@@ -134,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Commit transaction
         mysqli_commit($conn);
         
-        $_SESSION['success'] = "Estimate saved successfully! Estimate #: " . $estimate_number;
+        $_SESSION['success'] = "Quotation saved successfully! Quotation #: " . $estimate_number;
         header("Location: quotation_list.php");
         exit;
         

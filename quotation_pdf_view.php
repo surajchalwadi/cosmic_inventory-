@@ -7,6 +7,9 @@ if (!isset($_SESSION['user'])) {
 
 include 'config/db.php';
 
+// Add a test mode to view directly in browser
+$test_mode = isset($_GET['test']) || isset($_GET['view']);
+
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 	header("Location: quotation_list.php");
 	exit;
@@ -45,22 +48,153 @@ $currency_symbol = '₹';
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Quotation PDF - <?= htmlspecialchars($estimate['estimate_number']) ?></title>
 	<style>
-		/* A4 canvas tuned for html2pdf (jsPDF A4 portrait) */
-		html, body { margin: 0; padding: 0; background: #ffffff; font-family: Arial, Helvetica, sans-serif; color: #111; }
-		#pdf-root { width: 210mm; min-height: 297mm; padding: 14mm 12mm; box-sizing: border-box; }
-		.header { background: #ffffff; color: #1d1d1f; padding: 30px; border-bottom: 3px solid #155ba3; }
-		.company-info { display: flex; justify-content: space-between; }
-		.company-logo { font-size: 24px; font-weight: bold; color: #155ba3; }
-		.quotation-title { text-align: right; font-size: 28px; font-weight: bold; color: #155ba3; }
-		.content { padding: 30px; }
-		.client-section { display: flex; gap: 30px; margin-bottom: 30px; }
-		.bill-to, .ship-to { flex: 1; background: #f8f9fa; padding: 20px; border-left: 4px solid #155ba3; }
-		.items-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-		.items-table th { background: #155ba3; color: white; padding: 12px; text-align: left; }
-		.items-table td { padding: 12px; border-bottom: 1px solid #eee; }
-		.summary-table { width: 300px; margin-left: auto; }
-		.summary-table td { padding: 8px 15px; border-bottom: 1px solid #eee; }
-		.total-row { font-weight: bold; font-size: 18px; color: #155ba3; border-top: 2px solid #155ba3; }
+		/* Enhanced PDF styling to match print version */
+		html, body { 
+			margin: 0; 
+			padding: 0; 
+			background: #ffffff; 
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+			color: #333; 
+			font-size: 14px;
+		}
+		#pdf-root { 
+			width: 210mm; 
+			min-height: 297mm; 
+			padding: 15mm; 
+			box-sizing: border-box; 
+			background: white;
+			box-shadow: 0 0 20px rgba(0,0,0,0.1);
+			margin: 20px auto;
+		}
+		.header { 
+			background: #ffffff; 
+			color: #333; 
+			padding: 25px 30px; 
+			border-bottom: 3px solid #155ba3; 
+			margin-bottom: 30px;
+		}
+		.company-info { 
+			display: flex; 
+			justify-content: space-between; 
+			align-items: flex-start;
+		}
+		.company-logo { 
+			font-size: 28px; 
+			font-weight: bold; 
+			color: #155ba3; 
+			margin-bottom: 10px;
+		}
+		.quotation-title { 
+			text-align: right; 
+			font-size: 32px; 
+			font-weight: bold; 
+			color: #155ba3; 
+			margin-bottom: 15px;
+		}
+		.content { 
+			padding: 0 30px 30px; 
+		}
+		.client-section { 
+			display: flex; 
+			gap: 30px; 
+			margin-bottom: 40px; 
+		}
+		.bill-to, .ship-to { 
+			flex: 1; 
+			background: #f8f9fa; 
+			padding: 25px; 
+			border-left: 4px solid #155ba3; 
+			border-radius: 6px;
+			box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+		}
+		.items-table { 
+			width: 100%; 
+			border-collapse: collapse; 
+			margin-bottom: 30px; 
+			border: 1px solid #ddd;
+			border-radius: 6px;
+			overflow: hidden;
+		}
+		.items-table th { 
+			background: #155ba3; 
+			color: white; 
+			padding: 15px 12px; 
+			text-align: left; 
+			font-weight: 600;
+		}
+		.items-table td { 
+			padding: 12px; 
+			border-bottom: 1px solid #eee; 
+			vertical-align: top;
+		}
+		.items-table tr:last-child td {
+			border-bottom: none;
+		}
+		.summary-table { 
+			width: 350px; 
+			margin-left: auto; 
+			border: 1px solid #ddd;
+			border-radius: 6px;
+			overflow: hidden;
+			background: white;
+		}
+		.summary-table td { 
+			padding: 10px 20px; 
+			border-bottom: 1px solid #eee; 
+			font-size: 14px;
+		}
+		.summary-table tr:last-child td {
+			border-bottom: none;
+		}
+		.total-row { 
+			font-weight: bold; 
+			font-size: 18px; 
+			color: #155ba3; 
+			border-top: 2px solid #155ba3; 
+			background: #f8f9fa;
+		}
+		.terms-section {
+			background: #f8f9fa;
+			padding: 25px;
+			border-radius: 8px;
+			margin-top: 40px;
+			border: 1px solid #e9ecef;
+		}
+		.terms-title {
+			font-weight: bold;
+			color: #155ba3;
+			margin-bottom: 20px;
+			font-size: 16px;
+		}
+		.terms-list {
+			list-style: none;
+			padding: 0;
+			margin: 0;
+		}
+		.terms-list li {
+			margin-bottom: 10px;
+			padding-left: 25px;
+			position: relative;
+			line-height: 1.5;
+		}
+		.terms-list li:before {
+			content: "•";
+			position: absolute;
+			left: 0;
+			color: #155ba3;
+			font-weight: bold;
+			font-size: 16px;
+		}
+		.footer-section {
+			text-align: center;
+			padding: 25px;
+			background: #f8f9fa;
+			border-top: 2px solid #155ba3;
+			margin-top: 40px;
+			font-size: 14px;
+			color: #666;
+			font-weight: 500;
+		}
 	</style>
 </head>
 <body>
@@ -89,10 +223,10 @@ $currency_symbol = '₹';
 					</div>
 				</div>
 				<div>
-					<div class="quotation-title">ESTIMATE</div>
+					<div class="quotation-title">QUOTATION</div>
 					<div style="text-align: right; font-size: 14px;">
-						<div><strong>Estimate Number:</strong> <?= htmlspecialchars($estimate['estimate_number']) ?></div>
-						<div><strong>Estimate Date:</strong> <?= date('d-m-Y', strtotime($estimate['estimate_date'])) ?></div>
+						<div><strong>Quotation Number:</strong> <?= htmlspecialchars($estimate['estimate_number']) ?></div>
+						<div><strong>Quotation Date:</strong> <?= date('d-m-Y', strtotime($estimate['estimate_date'])) ?></div>
 						<div><strong>Status:</strong> <?= htmlspecialchars($estimate['status']) ?></div>
 					</div>
 				</div>
@@ -162,29 +296,20 @@ $currency_symbol = '₹';
 				</tr>
 			</table>
 
-			<div style="background: #f8f9fa; padding: 20px; border-radius: 6px; margin-top: 30px;">
-				<div style="font-weight: bold; color: #155ba3; margin-bottom: 15px;">Terms & Conditions</div>
-				<ul style="list-style: none; padding: 0; margin: 0;">
-					<li style="margin-bottom: 8px; padding-left: 20px; position: relative;">
-						<span style="position: absolute; left: 0; color: #155ba3; font-weight: bold;">•</span>
-						Total price inclusive of CGST @9%.
-					</li>
-					<li style="margin-bottom: 8px; padding-left: 20px; position: relative;">
-						<span style="position: absolute; left: 0; color: #155ba3; font-weight: bold;">•</span>
-						Total price inclusive of SGST @9%.
-					</li>
-					<li style="margin-bottom: 8px; padding-left: 20px; position: relative;">
-						<span style="position: absolute; left: 0; color: #155ba3; font-weight: bold;">•</span>
-						Payment 60% advance balance 40% on installation.
-					</li>
-					<li style="margin-bottom: 8px; padding-left: 20px; position: relative;">
-						<span style="position: absolute; left: 0; color: #155ba3; font-weight: bold;">•</span>
-						Prices are valid till 1 week.
-					</li>
+			<div class="terms-section">
+				<div class="terms-title">Terms & Conditions</div>
+				<ul class="terms-list">
+					<li>Total price inclusive of CGST @9%.</li>
+					<li>Total price inclusive of SGST @9%.</li>
+					<li>Payment 60% advance balance 40% on installation.</li>
+					<li>Prices are valid till 1 week.</li>
+					<li>Delivery within 15-20 working days from the date of order confirmation.</li>
+					<li>Installation charges extra if applicable.</li>
+					<li>All disputes subject to Goa jurisdiction only.</li>
 				</ul>
 			</div>
 
-			<div style="text-align: center; padding: 20px; background: #f8f9fa; border-top: 1px solid #eee; margin-top: 30px; font-size: 14px; color: #666;">
+			<div class="footer-section">
 				Make all checks payable to Cosmic Solutions
 			</div>
 		</div>

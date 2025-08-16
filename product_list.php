@@ -189,6 +189,42 @@ $result = mysqli_query($conn, $query);
     </div>
 </div>
 
+<!-- PDF Preview Modal -->
+<div class="modal fade" id="pdfPreviewModal" tabindex="-1" aria-labelledby="pdfPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pdfPreviewModalLabel">
+                    <i class="fas fa-file-pdf me-2"></i>PDF Preview - Products List
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="d-flex justify-content-between align-items-center p-3 bg-light border-bottom">
+                    <div>
+                        <small class="text-muted">Preview your products list before downloading</small>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-success btn-sm" id="downloadPdfBtn">
+                            <i class="fas fa-download me-1"></i>Download PDF
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>Close
+                        </button>
+                    </div>
+                </div>
+                <div id="pdfPreviewContent" style="height: 70vh; overflow-y: auto;">
+                    <div class="d-flex justify-content-center align-items-center h-100">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <!-- html2pdf for client-side PDF generation -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -229,7 +265,7 @@ function exportToPDF() {
     // Get selected products
     const selectedRows = document.querySelectorAll('.row-checkbox:checked');
     if (selectedRows.length === 0) {
-        alert('Please select at least one product to export');
+        alert('Please select at least one product to preview');
         return;
     }
 
@@ -248,6 +284,116 @@ function exportToPDF() {
         }
     });
 
+    showProductsPDFPreview(selectedProducts);
+}
+
+// New function to show PDF preview in modal
+function showProductsPDFPreview(selectedProducts) {
+    // Update modal title
+    document.getElementById('pdfPreviewModalLabel').innerHTML = 
+        `<i class="fas fa-file-pdf me-2"></i>PDF Preview - Products List (${selectedProducts.length} items)`;
+    
+    // Show loading spinner
+    document.getElementById('pdfPreviewContent').innerHTML = `
+        <div class="d-flex justify-content-center align-items-center h-100">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading PDF preview...</span>
+            </div>
+        </div>
+    `;
+    
+    // Store current products info for download
+    window.currentSelectedProducts = selectedProducts;
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('pdfPreviewModal'));
+    modal.show();
+    
+    // Pass selected products as URL parameters
+    const selectedData = encodeURIComponent(JSON.stringify(selectedProducts));
+    const pdfUrl = `product_pdf_view.php?selected=${selectedData}&view=1&v=${Date.now()}`;
+    
+    // Try to fetch the PDF content directly using AJAX
+    fetch(pdfUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.text();
+        })
+        .then(html => {
+            console.log('Products PDF content fetched successfully');
+            // Create a container div and insert the HTML content
+            const contentDiv = document.createElement('div');
+            contentDiv.innerHTML = html;
+            contentDiv.style.width = '100%';
+            contentDiv.style.height = '100%';
+            contentDiv.style.overflow = 'auto';
+            contentDiv.style.padding = '20px';
+            contentDiv.style.backgroundColor = 'white';
+            
+            document.getElementById('pdfPreviewContent').innerHTML = '';
+            document.getElementById('pdfPreviewContent').appendChild(contentDiv);
+        })
+        .catch(error => {
+            console.error('Error fetching products PDF content:', error);
+            
+            // Fallback to iframe approach
+            console.log('Falling back to iframe approach...');
+            const iframe = document.createElement('iframe');
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.src = pdfUrl;
+            
+            // Add timeout for iframe fallback
+            let loadTimeout = setTimeout(() => {
+                console.error('Products PDF preview loading timeout');
+                document.getElementById('pdfPreviewContent').innerHTML = `
+                    <div class="d-flex justify-content-center align-items-center h-100">
+                        <div class="text-center">
+                            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                            <h5>Unable to load PDF preview</h5>
+                            <p class="text-muted">Preview is not available, but you can still download the PDF.</p>
+                            <button class="btn btn-success" onclick="generateProductsPDF(window.currentSelectedProducts)">
+                                <i class="fas fa-download me-1"></i>Download PDF Instead
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }, 5000); // 5 second timeout for fallback
+            
+            iframe.onload = function() {
+                clearTimeout(loadTimeout);
+                console.log('Products PDF iframe loaded successfully (fallback)');
+                document.getElementById('pdfPreviewContent').innerHTML = '';
+                document.getElementById('pdfPreviewContent').appendChild(iframe);
+            };
+            
+            iframe.onerror = function() {
+                clearTimeout(loadTimeout);
+                console.error('Products PDF iframe also failed to load');
+                document.getElementById('pdfPreviewContent').innerHTML = `
+                    <div class="d-flex justify-content-center align-items-center h-100">
+                        <div class="text-center">
+                            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                            <h5>Unable to load PDF preview</h5>
+                            <p class="text-muted">Preview is not available, but you can still download the PDF.</p>
+                            <button class="btn btn-success" onclick="generateProductsPDF(window.currentSelectedProducts)">
+                                <i class="fas fa-download me-1"></i>Download PDF Instead
+                            </button>
+                        </div>
+                    </div>
+                `;
+            };
+            
+            // Try the iframe fallback
+            document.getElementById('pdfPreviewContent').innerHTML = '';
+            document.getElementById('pdfPreviewContent').appendChild(iframe);
+        });
+}
+
+function generateProductsPDF(selectedProducts) {
     // Create hidden iframe to load PDF-optimized page with selected products
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
@@ -286,6 +432,17 @@ function exportToPDF() {
         }
     };
 }
+
+// Add event listener for download button in modal
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('downloadPdfBtn').addEventListener('click', function() {
+        if (window.currentSelectedProducts && window.currentSelectedProducts.length > 0) {
+            generateProductsPDF(window.currentSelectedProducts);
+        } else {
+            alert('No products selected for download.');
+        }
+    });
+});
 
 function exportToExcel() {
     // Get selected products

@@ -53,69 +53,106 @@ $html = '
             font-family: Arial, sans-serif; 
             margin: 0; 
             padding: 20px; 
-            background: white;
+            background: #f5f5f5;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.1); 
         }
         .header { 
-            background: #155ba3; 
-            color: white; 
-            padding: 20px; 
-            margin-bottom: 20px; 
+            background: #ffffff; 
+            color: #1d1d1f; 
+            padding: 30px; 
+            border-bottom: 3px solid #155ba3; 
         }
         .company-info { 
             display: flex; 
             justify-content: space-between; 
         }
         .company-logo { 
-            font-size: 20px; 
+            font-size: 24px; 
             font-weight: bold; 
+            color: #155ba3; 
         }
         .quotation-title { 
             text-align: right; 
-            font-size: 24px; 
+            font-size: 28px; 
             font-weight: bold; 
+            color: #155ba3; 
+        }
+        .content { 
+            padding: 30px; 
         }
         .client-section { 
             display: flex; 
-            gap: 20px; 
-            margin-bottom: 20px; 
+            gap: 30px; 
+            margin-bottom: 30px; 
         }
         .bill-to, .ship-to { 
             flex: 1; 
             background: #f8f9fa; 
-            padding: 15px; 
+            padding: 20px; 
             border-left: 4px solid #155ba3; 
         }
         .items-table { 
             width: 100%; 
             border-collapse: collapse; 
-            margin-bottom: 20px; 
+            margin-bottom: 30px; 
         }
         .items-table th { 
             background: #155ba3; 
             color: white; 
-            padding: 8px; 
+            padding: 12px; 
             text-align: left; 
         }
         .items-table td { 
-            padding: 8px; 
+            padding: 12px; 
+            border-bottom: 1px solid #eee; 
             border-bottom: 1px solid #eee; 
         }
         .summary-table { 
-            width: 250px; 
+            width: 300px; 
             margin-left: auto; 
         }
         .summary-table td { 
-            padding: 5px 10px; 
+            padding: 8px 15px; 
             border-bottom: 1px solid #eee; 
         }
         .total-row { 
             font-weight: bold; 
-            font-size: 16px; 
+            font-size: 18px; 
             color: #155ba3; 
             border-top: 2px solid #155ba3; 
         }
         .terms-section { 
             background: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 6px; 
+            margin-top: 30px; 
+        }
+        .terms-title { 
+            font-weight: bold; 
+            color: #155ba3; 
+            margin-bottom: 15px; 
+        }
+        .terms-list { 
+            list-style: none; 
+            padding: 0; 
+            margin: 0; 
+        }
+        .terms-list li { 
+            margin-bottom: 8px; 
+            padding-left: 20px; 
+            position: relative; 
+        }
+        .terms-list li:before { 
+            content: "•"; 
+            position: absolute; 
+            left: 0; 
+            color: #155ba3; 
+            font-weight: bold; 
             padding: 15px; 
             margin-top: 20px; 
         }
@@ -129,31 +166,33 @@ $html = '
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="company-info">
-            <div>
-                <div class="company-logo">Cosmic Solutions</div>
-                <div style="font-size: 11px; line-height: 1.3;">
-                    EF-102, 1st Floor, E-boshan Building<br>
-                    Boshan Hotels, Opp. Bodgeshwar Temple<br>
-                    Mapusa - Goa. GSTN: 30AAMFC9553C1ZN<br>
-                    Goa 403507<br>
-                    Email: prajyot@cosmicsolutions.co.in<br>
-                    Phone: 8390831122
+    <div class="container">
+        <div class="header">
+            <div class="company-info">
+                <div>
+                    <div class="company-logo">Cosmic Solutions</div>
+                    <div style="font-size: 12px; line-height: 1.4;">
+                        EF-102, 1st Floor, E-boshan Building<br>
+                        Boshan Hotels, Opp. Bodgeshwar Temple<br>
+                        Mapusa - Goa. GSTN: 30AAMFC9553C1ZN<br>
+                        Goa 403507<br>
+                        Email: prajyot@cosmicsolutions.co.in<br>
+                        Phone: 8390831122
+                    </div>
                 </div>
-            </div>
-            <div>
-                <div class="quotation-title">ESTIMATE</div>
-                <div style="text-align: right; font-size: 12px;">
-                    <div><strong>Estimate Number:</strong> ' . htmlspecialchars($estimate['estimate_number']) . '</div>
-                    <div><strong>Estimate Date:</strong> ' . date('d-m-Y', strtotime($estimate['estimate_date'])) . '</div>
-                    <div><strong>Status:</strong> ' . htmlspecialchars($estimate['status']) . '</div>
+                <div>
+                    <div class="quotation-title">ESTIMATE</div>
+                    <div style="text-align: right; font-size: 12px;">
+                        <div><strong>Estimate Number:</strong> ' . htmlspecialchars($estimate['estimate_number']) . '</div>
+                        <div><strong>Estimate Date:</strong> ' . date('d-m-Y', strtotime($estimate['estimate_date'])) . '</div>
+                        <div><strong>Status:</strong> ' . htmlspecialchars($estimate['status']) . '</div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="client-section">
+        <div class="content">
+            <div class="client-section">
         <div class="bill-to">
             <div style="font-weight: bold; color: #155ba3; margin-bottom: 10px;">Bill To</div>
             <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px;">' . htmlspecialchars($estimate['bill_client_name'] ?? 'Not specified') . '</div>';
@@ -221,30 +260,23 @@ $html .= '</tbody>
         </tr>
     </table>
 
-    <div class="terms-section">
-        <div style="font-weight: bold; color: #155ba3; margin-bottom: 10px;">Terms & Conditions</div>
-        <ul style="list-style: none; padding: 0; margin: 0; font-size: 11px;">
-            <li style="margin-bottom: 6px; padding-left: 15px; position: relative;">
-                <span style="position: absolute; left: 0; color: #155ba3; font-weight: bold;">•</span>
-                Total price inclusive of CGST @9%.
-            </li>
-            <li style="margin-bottom: 6px; padding-left: 15px; position: relative;">
-                <span style="position: absolute; left: 0; color: #155ba3; font-weight: bold;">•</span>
-                Total price inclusive of SGST @9%.
-            </li>
-            <li style="margin-bottom: 6px; padding-left: 15px; position: relative;">
-                <span style="position: absolute; left: 0; color: #155ba3; font-weight: bold;">•</span>
-                Payment 60% advance balance 40% on installation.
-            </li>
-            <li style="margin-bottom: 6px; padding-left: 15px; position: relative;">
-                <span style="position: absolute; left: 0; color: #155ba3; font-weight: bold;">•</span>
-                Prices are valid till 1 week.
-            </li>
-        </ul>
-    </div>
+            <div class="terms-section">
+                <div class="terms-title">Terms & Conditions</div>
+                <ul class="terms-list">
+                    <li>Total price inclusive of CGST @9%.</li>
+                    <li>Total price inclusive of SGST @9%.</li>
+                    <li>Payment 60% advance balance 40% on installation.</li>
+                    <li>Prices are valid till 1 week.</li>
+                    <li>Delivery within 15-20 working days from the date of order confirmation.</li>
+                    <li>Installation charges extra if applicable.</li>
+                    <li>All disputes subject to Goa jurisdiction only.</li>
+                </ul>
+            </div>
 
-    <div class="footer" style="font-size: 12px; color: #666;">
-        Make all checks payable to Cosmic Solutions
+            <div style="font-size: 12px; color: #666; text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                Make all checks payable to Cosmic Solutions
+            </div>
+        </div>
     </div>
 </body>
 </html>';

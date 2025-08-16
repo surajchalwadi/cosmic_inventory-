@@ -29,6 +29,69 @@ $reference = 'QT' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
 <!DOCTYPE html>
 <html lang="en">
 <?php include 'head.php'; ?>
+<style>
+/* Ensure number input spinners are visible and functional */
+input[type="number"] {
+    -webkit-appearance: textfield;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Custom spinner buttons */
+.number-input-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.number-input-wrapper input[type="number"] {
+    width: 100%;
+    padding-right: 25px;
+}
+
+.spinner-buttons {
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 4px);
+}
+
+.spinner-btn {
+    width: 20px;
+    height: 50%;
+    border: none;
+    background: #f8f9fa;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #666;
+    border-left: 1px solid #dee2e6;
+}
+
+.spinner-btn:hover {
+    background: #e9ecef;
+}
+
+.spinner-btn:first-child {
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 0 3px 0 0;
+}
+
+.spinner-btn:last-child {
+    border-radius: 0 0 3px 0;
+}
+</style>
 <body>
 
 <?php include 'sidebar.php'; ?>
@@ -299,7 +362,7 @@ $reference = 'QT' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
                                 <tbody id="product-items">
                                     <tr class="product-row">
                                         <td>
-                                            <select name="product_name[]" class="form-control product-select" required onchange="updatePrice(this)">
+                                            <select name="product_description[]" class="form-control product-select" required onchange="updatePrice(this)">
                                                 <option value="">Select Product</option>
                                                 <?php foreach ($products as $product): ?>
                                                     <option value="<?= htmlspecialchars($product['product_name']) ?>" 
@@ -316,7 +379,13 @@ $reference = 'QT' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
                                                 <option value="Days">Days</option>
                                                 <option value="Pieces">Pieces</option>
                                             </select>
-                                            <input type="number" name="quantity[]" class="form-control" step="0.01" min="0" placeholder="0" required>
+                                            <div class="number-input-wrapper">
+                                                <input type="number" name="quantity[]" class="form-control" step="1" min="0" placeholder="0" required>
+                                                <div class="spinner-buttons">
+                                                    <button type="button" class="spinner-btn" onclick="incrementValue(this, 1)">▲</button>
+                                                    <button type="button" class="spinner-btn" onclick="decrementValue(this, 1)">▼</button>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td>
                                             <input type="number" name="unit_price[]" class="form-control" step="0.01" min="0" placeholder="0.00" required>
@@ -328,7 +397,13 @@ $reference = 'QT' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
                                                 <option value="Discount">Discount</option>
                                             </select>
                                             <div class="input-group">
-                                                <input type="number" name="tax_discount_value[]" class="form-control" step="0.01" min="0" placeholder="0.00">
+                                                <div class="number-input-wrapper">
+                                                    <input type="number" name="tax_discount_value[]" class="form-control" step="1" min="0" placeholder="0" oninput="calculateTotals()">
+                                                    <div class="spinner-buttons">
+                                                        <button type="button" class="spinner-btn" onclick="incrementValue(this, 1)">▲</button>
+                                                        <button type="button" class="spinner-btn" onclick="decrementValue(this, 1)">▼</button>
+                                                    </div>
+                                                </div>
                                                 <span class="input-group-text"><i class="fas fa-info-circle"></i></span>
                                             </div>
                                         </td>
@@ -447,7 +522,7 @@ function addNewRow() {
     const newRow = `
         <tr class="product-row">
             <td>
-                <select name="product_name[]" class="form-control product-select" required onchange="updatePrice(this)">
+                <select name="product_description[]" class="form-control product-select" required onchange="updatePrice(this)">
                     <option value="">Select Product</option>
                     <?php foreach ($products as $product): ?>
                         <option value="<?= htmlspecialchars($product['product_name']) ?>" 
@@ -464,7 +539,13 @@ function addNewRow() {
                     <option value="Days">Days</option>
                     <option value="Pieces">Pieces</option>
                 </select>
-                <input type="number" name="quantity[]" class="form-control" step="0.01" min="0" placeholder="0" required>
+                <div class="number-input-wrapper">
+                    <input type="number" name="quantity[]" class="form-control" step="1" min="0" placeholder="0" required>
+                    <div class="spinner-buttons">
+                        <button type="button" class="spinner-btn" onclick="incrementValue(this, 1)">▲</button>
+                        <button type="button" class="spinner-btn" onclick="decrementValue(this, 1)">▼</button>
+                    </div>
+                </div>
             </td>
             <td>
                 <input type="number" name="unit_price[]" class="form-control" step="0.01" min="0" placeholder="0.00" required>
@@ -476,7 +557,13 @@ function addNewRow() {
                     <option value="Discount">Discount</option>
                 </select>
                 <div class="input-group">
-                    <input type="number" name="tax_discount_value[]" class="form-control" step="0.01" min="0" placeholder="0.00">
+                    <div class="number-input-wrapper">
+                        <input type="number" name="tax_discount_value[]" class="form-control" step="1" min="0" placeholder="0" oninput="calculateTotals()">
+                        <div class="spinner-buttons">
+                            <button type="button" class="spinner-btn" onclick="incrementValue(this, 1)">▲</button>
+                            <button type="button" class="spinner-btn" onclick="decrementValue(this, 1)">▼</button>
+                        </div>
+                    </div>
                     <span class="input-group-text"><i class="fas fa-info-circle"></i></span>
                 </div>
             </td>
@@ -512,6 +599,51 @@ function calculateRowAmount(row) {
     }
     
     row.find('input[name="amount[]"]').val(amount.toFixed(2));
+}
+
+// Custom spinner button functions
+function incrementValue(button, step) {
+    const input = button.closest('.number-input-wrapper').querySelector('input[type="number"]');
+    const currentValue = parseFloat(input.value) || 0;
+    const newValue = currentValue + step;
+    
+    // Check min constraint
+    const min = parseFloat(input.getAttribute('min'));
+    if (!isNaN(min) && newValue < min) {
+        return;
+    }
+    
+    // Set the new value with proper decimal places
+    if (step === 1) {
+        input.value = Math.round(newValue);
+    } else {
+        input.value = newValue.toFixed(2);
+    }
+    
+    // Trigger input event to recalculate totals
+    $(input).trigger('input');
+}
+
+function decrementValue(button, step) {
+    const input = button.closest('.number-input-wrapper').querySelector('input[type="number"]');
+    const currentValue = parseFloat(input.value) || 0;
+    const newValue = currentValue - step;
+    
+    // Check min constraint
+    const min = parseFloat(input.getAttribute('min'));
+    if (!isNaN(min) && newValue < min) {
+        return;
+    }
+    
+    // Set the new value with proper decimal places
+    if (step === 1) {
+        input.value = Math.round(Math.max(0, newValue));
+    } else {
+        input.value = Math.max(0, newValue).toFixed(2);
+    }
+    
+    // Trigger input event to recalculate totals
+    $(input).trigger('input');
 }
 
 function calculateTotals() {

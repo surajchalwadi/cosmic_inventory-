@@ -8,8 +8,11 @@ if (!isset($_SESSION['user']) || !in_array($_SESSION['user']['role'], ['admin', 
 include 'config/db.php';
 $role = $_SESSION['user']['role'];
 
-// Fetch estimates
-$query = "SELECT * FROM estimates ORDER BY created_at DESC";
+// Fetch estimates with client name and formatted total amount
+$query = "SELECT e.*, c.client_name 
+          FROM estimates e
+          LEFT JOIN clients c ON e.client_id = c.client_id
+          ORDER BY e.created_at DESC";
 $result = mysqli_query($conn, $query);
 ?>
 
@@ -150,7 +153,19 @@ $result = mysqli_query($conn, $query);
                                         <span class="badge <?= $status_class ?>"><?= htmlspecialchars($row['status']) ?></span>
                                     </td>
                                     <td>
-                                        <strong><?= $currency_symbol ?><?= number_format($row['total_amount'], 2) ?></strong>
+                                        <?php 
+                                        // Set currency symbol based on the estimate's currency
+                                        $currency_symbols = [
+                                            'INR' => '₹',
+                                            'USD' => '$',
+                                            'EUR' => '€',
+                                            'GBP' => '£',
+                                            'JPY' => '¥'
+                                        ];
+                                        $currency = $row['currency'] ?? 'INR';
+                                        $symbol = $currency_symbols[$currency] ?? $currency . ' ';
+                                        ?>
+                                        <strong><?= $symbol . ' ' . number_format($row['total_amount'], 2) ?></strong>
                                     </td>
                                     <td>
                                         <div class="btn-group">
@@ -218,6 +233,42 @@ $result = mysqli_query($conn, $query);
     </div>
 </div>
 
+<!-- PDF Preview Modal -->
+<div class="modal fade" id="pdfPreviewModal" tabindex="-1" aria-labelledby="pdfPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pdfPreviewModalLabel">
+                    <i class="fas fa-file-pdf me-2"></i>PDF Preview
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="d-flex justify-content-between align-items-center p-3 bg-light border-bottom">
+                    <div>
+                        <small class="text-muted">Preview your quotation before downloading</small>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-success btn-sm" id="downloadPdfBtn">
+                            <i class="fas fa-download me-1"></i>Download PDF
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>Close
+                        </button>
+                    </div>
+                </div>
+                <div id="pdfPreviewContent" style="height: 70vh; overflow-y: auto;">
+                    <div class="d-flex justify-content-center align-items-center h-100">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <!-- html2pdf for client-side PDF generation -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -256,14 +307,40 @@ document.querySelectorAll('.row-checkbox').forEach(checkbox => {
 // Export functions
 function exportToPDF() {
     const selectedRows = document.querySelectorAll('.row-checkbox:checked');
+    
+    // If no checkboxes are selected, try to use the first quotation as default
     if (selectedRows.length === 0) {
-        alert('Please select at least one quotation to export');
+        const firstRow = document.querySelector('#quotationTable tbody tr');
+        if (!firstRow) {
+            alert('No quotations available to preview');
+            return;
+        }
+        
+        const editLink = firstRow.querySelector('a[href*="quotation_edit.php"]');
+        if (!editLink) {
+            alert('Unable to locate quotation ID.');
+            return;
+        }
+        
+        const estimateId = editLink.href.split('id=')[1].split('&')[0]; // Clean the ID
+        const quotationNumberCell = firstRow.querySelectorAll('td')[1];
+        const quotationNumber = quotationNumberCell ? quotationNumberCell.textContent.trim() : 'Quotation';
+        
+        console.log('Extracted estimate ID:', estimateId);
+        console.log('Edit link href:', editLink.href);
+        
+        // Ask user to confirm which quotation to preview
+        if (!confirm(`No quotation selected. Preview PDF for ${quotationNumber} (ID: ${estimateId})?`)) {
+            return;
+        }
+        
+        showPDFPreview(estimateId, quotationNumber);
         return;
     }
 
     // Only support single selection for now
     if (selectedRows.length > 1) {
-        alert('Please select only one quotation for PDF download for now.');
+        alert('Please select only one quotation for PDF preview for now.');
         return;
     }
 
@@ -275,9 +352,120 @@ function exportToPDF() {
         return;
     }
 
-    const estimateId = editLink.href.split('id=')[1];
+    const estimateId = editLink.href.split('id=')[1].split('&')[0]; // Clean the ID
     const quotationNumberCell = row.querySelectorAll('td')[1];
     const quotationNumber = quotationNumberCell ? quotationNumberCell.textContent.trim() : 'Quotation';
+    
+    console.log('Selected row estimate ID:', estimateId);
+    console.log('Selected row edit link:', editLink.href);
+    
+    showPDFPreview(estimateId, quotationNumber);
+}
+
+// New function to show PDF preview in modal
+function showPDFPreview(estimateId, quotationNumber) {
+    // Update modal title
+    document.getElementById('pdfPreviewModalLabel').innerHTML = 
+        `<i class="fas fa-file-pdf me-2"></i>PDF Preview - ${quotationNumber}`;
+    
+    // Show loading spinner
+    document.getElementById('pdfPreviewContent').innerHTML = `
+        <div class="d-flex justify-content-center align-items-center h-100">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading PDF preview...</span>
+            </div>
+        </div>
+    `;
+    
+    // Store current quotation info for download
+    window.currentQuotationId = estimateId;
+    window.currentQuotationNumber = quotationNumber;
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('pdfPreviewModal'));
+    modal.show();
+    
+    // Try to fetch the PDF content directly using AJAX
+    fetch(`quotation_pdf_view.php?id=${encodeURIComponent(estimateId)}&view=1&v=${Date.now()}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.text();
+        })
+        .then(html => {
+            console.log('PDF content fetched successfully');
+            // Create a container div and insert the HTML content
+            const contentDiv = document.createElement('div');
+            contentDiv.innerHTML = html;
+            contentDiv.style.width = '100%';
+            contentDiv.style.height = '100%';
+            contentDiv.style.overflow = 'auto';
+            contentDiv.style.padding = '20px';
+            contentDiv.style.backgroundColor = 'white';
+            
+            document.getElementById('pdfPreviewContent').innerHTML = '';
+            document.getElementById('pdfPreviewContent').appendChild(contentDiv);
+        })
+        .catch(error => {
+            console.error('Error fetching PDF content:', error);
+            
+            // Fallback to iframe approach
+            console.log('Falling back to iframe approach...');
+            const iframe = document.createElement('iframe');
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.src = `quotation_pdf_view.php?id=${encodeURIComponent(estimateId)}&view=1&v=${Date.now()}`;
+            
+            // Add timeout for iframe fallback
+            let loadTimeout = setTimeout(() => {
+                console.error('PDF preview loading timeout');
+                document.getElementById('pdfPreviewContent').innerHTML = `
+                    <div class="d-flex justify-content-center align-items-center h-100">
+                        <div class="text-center">
+                            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                            <h5>Unable to load PDF preview</h5>
+                            <p class="text-muted">Preview is not available, but you can still download the PDF.</p>
+                            <button class="btn btn-success" onclick="generatePDFForQuotation('${estimateId}', '${quotationNumber}')">
+                                <i class="fas fa-download me-1"></i>Download PDF Instead
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }, 5000); // 5 second timeout for fallback
+            
+            iframe.onload = function() {
+                clearTimeout(loadTimeout);
+                console.log('PDF iframe loaded successfully (fallback)');
+                document.getElementById('pdfPreviewContent').innerHTML = '';
+                document.getElementById('pdfPreviewContent').appendChild(iframe);
+            };
+            
+            iframe.onerror = function() {
+                clearTimeout(loadTimeout);
+                console.error('PDF iframe also failed to load');
+                document.getElementById('pdfPreviewContent').innerHTML = `
+                    <div class="d-flex justify-content-center align-items-center h-100">
+                        <div class="text-center">
+                            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                            <h5>Unable to load PDF preview</h5>
+                            <p class="text-muted">Preview is not available, but you can still download the PDF.</p>
+                            <button class="btn btn-success" onclick="generatePDFForQuotation('${estimateId}', '${quotationNumber}')">
+                                <i class="fas fa-download me-1"></i>Download PDF Instead
+                            </button>
+                        </div>
+                    </div>
+                `;
+            };
+            
+            // Try the iframe fallback
+            document.getElementById('pdfPreviewContent').innerHTML = '';
+            document.getElementById('pdfPreviewContent').appendChild(iframe);
+        });
+}
+
+function generatePDFForQuotation(estimateId, quotationNumber) {
 
     // Create hidden iframe to load print-friendly page
     const iframe = document.createElement('iframe');
@@ -288,33 +476,78 @@ function exportToPDF() {
     iframe.style.height = '0';
     iframe.style.border = '0';
     // Load a dedicated PDF-optimized view (no UI controls, A4 layout)
-    iframe.src = 'quotation_pdf_view.php?id=' + encodeURIComponent(estimateId);
+    iframe.src = 'quotation_pdf_view.php?id=' + encodeURIComponent(estimateId) + '&v=' + Date.now();
     document.body.appendChild(iframe);
 
     iframe.onload = function() {
-        try {
-            const doc = iframe.contentDocument || iframe.contentWindow.document;
-            const content = doc.querySelector('#pdf-root') || doc.body;
-            const opt = {
-                margin:       [10, 10, 10, 10],
-                filename:     (quotationNumber.replace(/\s+/g, '_')) + '.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, logging: false },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
+        // Simple delay to ensure content is rendered
+        setTimeout(() => {
+            try {
+                const doc = iframe.contentDocument || iframe.contentWindow.document;
+                console.log('PDF iframe loaded, document title:', doc.title);
+                
+                const content = doc.querySelector('#pdf-root') || doc.body;
+                console.log('PDF content element found:', content ? 'Yes' : 'No');
+                console.log('Content HTML length:', content ? content.innerHTML.length : 0);
+                
+                if (!content || content.innerHTML.trim() === '') {
+                    console.error('PDF content not loaded properly');
+                    alert('PDF content not loaded properly. Please try again.');
+                    if (document.body.contains(iframe)) {
+                        document.body.removeChild(iframe);
+                    }
+                    return;
+                }
+                
+                // Ensure we're using the enhanced PDF view content
+                if (!doc.title.includes('Quotation PDF') && !content.querySelector('.header')) {
+                    console.error('Wrong PDF source detected, redirecting to correct view');
+                    iframe.src = 'quotation_pdf_view.php?id=' + encodeURIComponent(estimateId) + '&view=1&v=' + Date.now();
+                    return;
+                }
+                
+                const opt = {
+                    margin:       [10, 10, 10, 10],
+                    filename:     (quotationNumber.replace(/\s+/g, '_')) + '.pdf',
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true, logging: false },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
 
-            html2pdf().set(opt).from(content).save().then(() => {
-                setTimeout(() => { document.body.removeChild(iframe); }, 500);
-            }).catch(() => {
-                document.body.removeChild(iframe);
-                alert('Failed to generate PDF.');
-            });
-        } catch (e) {
-            document.body.removeChild(iframe);
-            alert('PDF generation blocked by browser.');
-        }
+                html2pdf().set(opt).from(content).save().then(() => {
+                    setTimeout(() => { 
+                        if (document.body.contains(iframe)) {
+                            document.body.removeChild(iframe); 
+                        }
+                    }, 500);
+                }).catch((error) => {
+                    console.error('PDF generation error:', error);
+                    if (document.body.contains(iframe)) {
+                        document.body.removeChild(iframe);
+                    }
+                    alert('Failed to generate PDF. Please try again.');
+                });
+            } catch (e) {
+                console.error('PDF generation error:', e);
+                if (document.body.contains(iframe)) {
+                    document.body.removeChild(iframe);
+                }
+                alert('PDF generation blocked by browser.');
+            }
+        }, 500); // Shorter delay
     };
 }
+
+// Add event listener for download button in modal
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('downloadPdfBtn').addEventListener('click', function() {
+        if (window.currentQuotationId && window.currentQuotationNumber) {
+            generatePDFForQuotation(window.currentQuotationId, window.currentQuotationNumber);
+        } else {
+            alert('No quotation selected for download.');
+        }
+    });
+});
 
 function exportToExcel() {
     const table = document.getElementById('quotationTable');
